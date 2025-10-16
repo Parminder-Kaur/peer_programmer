@@ -43,14 +43,13 @@ def coder_agent(state:dict) -> dict:
         f"Existing content:\n{existing_content}\n"
         "Use write_file(path, content) to save your changes."
     )
-    coder_tools = [read_file, write_file, list_files, get_current_directory]
+    coder_tools = [read_file, write_file, list_file, get_current_directory]
     react_agent = create_react_agent(llm, coder_tools)
 
     react_agent.invoke({"messages": [{"role": "system", "content": system_prompt},
                                      {"role": "user", "content": user_prompt}]})
     coder_state.current_step_idx += 1
     return {"coder_state": coder_state}
-user_prompt = "create a simple calculator web application"
 
 graph = StateGraph(dict)
 graph.add_node("planner", planner_agent)
@@ -67,7 +66,7 @@ graph.add_conditional_edges(
 graph.set_entry_point("planner")
 
 agent = graph.compile()
-result = agent.invoke({"user_prompt":user_prompt},
+result = agent.invoke({"user_prompt":"Build a colourful modern todo app in html css and js"},
                       {"recursion_limit": 100})
 
 

@@ -1,6 +1,7 @@
 def planner_prompt(user_prompt: str) -> str:
     PLANNER_PROMPT = f""" 
         you are the planner agent. Convert the user prompt into a complete engineering project plan
+        - You understand a file management. You can only use the read_file, write_file, list_file, get_current_directory tools. Do not invent or use any other tools. simply architect files according to available tools
         User request: {user_prompt}
         """
     return PLANNER_PROMPT
@@ -18,7 +19,7 @@ RULES:
     * Include integration details: imports, expected function signatures, data flow.
 - Order tasks so that dependencies are implemented first.
 - Each step must be SELF-CONTAINED but also carry FORWARD the relevant context from earlier tasks.
-
+- You understand a file management. You can only use the read_file, write_file, list_file, get_current_directory tools. Do not invent or use any other tools. simply architect files according to available tools
 Project Plan:
 {plan}
     """
@@ -28,7 +29,8 @@ def coder_system_prompt() -> str:
     CODER_SYSTEM_PROMPT = """
 You are the CODER agent.
 You are implementing a specific engineering task.
-You have access to tools to read and write files.
+You understand a file management. You can only use the read_file, write_file, list_file, get_current_directory tools. Do not invent or use any other tools. simply architect files according to available tools
+
 
 Always:
 - Review all existing files to maintain compatibility.
