@@ -25,7 +25,15 @@ def architect_agent(state:dict) -> dict:
     return { "implementation_steps" : res}
 
 def coder_agent(state:dict) -> dict:
-    current_task = state["implementation_steps"].tasks[0]
+    coder_state: CoderState = state.get("coder_state")
+    if coder_state is None:
+        coder_state = CoderState(task_plan=state["implementation_steps"], current_step_idx=0)
+
+    steps = coder_state.task_plan.tasks
+    if coder_state.current_step_idx >= len(steps):
+        return {"coder_state": coder_state, "status": "DONE"}
+
+    current_task = steps[coder_state.current_step_idx]
     existing_content = read_file.run(current_task.filepath)
 
     system_prompt = coder_system_prompt()
@@ -40,8 +48,8 @@ def coder_agent(state:dict) -> dict:
 
     react_agent.invoke({"messages": [{"role": "system", "content": system_prompt},
                                      {"role": "user", "content": user_prompt}]})
-
-    return {}
+    coder_state.current_step_idx += 1
+    return {"coder_state": coder_state}
 user_prompt = "create a simple calculator web application"
 
 graph = StateGraph(dict)
@@ -50,10 +58,17 @@ graph.add_node("architect", architect_agent)
 graph.add_node("coder", coder_agent)
 graph.add_edge("planner", "architect")
 graph.add_edge("architect", "coder")
+graph.add_conditional_edges(
+    "coder",
+    lambda s: "END" if s.get("status") == "DONE" else "coder",
+    {"END": END, "coder": "coder"}
+)
+
 graph.set_entry_point("planner")
 
 agent = graph.compile()
-result = agent.invoke({"user_prompt":user_prompt})
+result = agent.invoke({"user_prompt":user_prompt},
+                      {"recursion_limit": 100})
 
 
 print(result)
