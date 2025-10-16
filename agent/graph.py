@@ -8,6 +8,9 @@ from langchain_groq import ChatGroq
 from langgraph.constants import END
 from agent.prompts import *
 from agent.states import *
+from agent.tools import *
+from langgraph.prebuilt import create_react_agent
+
 llm = ChatGroq(model="openai/gpt-oss-120b")
 set_debug(True)
 set_verbose(True)
@@ -22,10 +25,23 @@ def architect_agent(state:dict) -> dict:
     return { "implementation_steps" : res}
 
 def coder_agent(state:dict) -> dict:
-    user_prompt = state["implementation_steps"].tasks[0].description
-    sys_prompt = coder_system_prompt() + user_prompt
-    resp = llm.invoke(sys_prompt)
-    return { "coder":resp.content }
+    current_task = state["implementation_steps"].tasks[0]
+    existing_content = read_file.run(current_task.filepath)
+
+    system_prompt = coder_system_prompt()
+    user_prompt = (
+        f"Task: {current_task.description}\n"
+        f"File: {current_task.filepath}\n"
+        f"Existing content:\n{existing_content}\n"
+        "Use write_file(path, content) to save your changes."
+    )
+    coder_tools = [read_file, write_file, list_files, get_current_directory]
+    react_agent = create_react_agent(llm, coder_tools)
+
+    react_agent.invoke({"messages": [{"role": "system", "content": system_prompt},
+                                     {"role": "user", "content": user_prompt}]})
+
+    return {}
 user_prompt = "create a simple calculator web application"
 
 graph = StateGraph(dict)
