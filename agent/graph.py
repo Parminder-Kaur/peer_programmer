@@ -21,14 +21,19 @@ def architect_agent(state:dict) -> dict:
     res.plan = state["plan"]
     return { "implementation_steps" : res}
 
+def coder_agent(state:dict) -> dict:
+    user_prompt = state["implementation_steps"].tasks[0].description
+    sys_prompt = coder_system_prompt() + user_prompt
+    resp = llm.invoke(sys_prompt)
+    return { "coder":resp.content }
 user_prompt = "create a simple calculator web application"
 
 graph = StateGraph(dict)
 graph.add_node("planner", planner_agent)
 graph.add_node("architect", architect_agent)
-
+graph.add_node("coder", coder_agent)
 graph.add_edge("planner", "architect")
-
+graph.add_edge("architect", "coder")
 graph.set_entry_point("planner")
 
 agent = graph.compile()
